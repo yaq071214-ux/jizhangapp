@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#F6F5F1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<title>记一笔 · 极简记账</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F6F5F1;
+  --bg-card: #FFFFFF;
+  --bg-soft: #EFEDE6;
+  --bg-hover: #F3F1EB;
+  --text: #2A2A27;
+  --text-2: #7E7C74;
+  --text-3: #B6B4AB;
+  --line: #ECEAE2;
+  --line-strong: #E0DDD3;
+  --expense: #C98E7E;
+  --expense-bg: #F5EAE5;
+  --income: #8FA98C;
+  --income-bg: #EAF0E7;
+  --accent: #A9B8C6;
+  --accent-bg: #EDF1F5;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-lg: 24px;
+  --sidebar-w: 232px;
+  --tabbar-h: 62px;
+  --shadow: 0 1px 2px rgba(42,42,39,0.03), 0 4px 16px rgba(42,42,39,0.04);
+  --shadow-pop: 0 8px 32px rgba(42,42,39,0.10);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1D1D1B;
+  --bg-card: #262624;
+  --bg-soft: #2E2E2B;
+  --bg-hover: #2B2B28;
+  --text: #E9E8E3;
+  --text-2: #A3A19A;
+  --text-3: #6E6C66;
+  --line: #33332F;
+  --line-strong: #3C3C37;
+  --expense: #D9A290;
+  --expense-bg: #3A2C28;
+  --income: #9FB795;
+  --income-bg: #2B3329;
+  --accent: #B6C4D2;
+  --accent-bg: #2C3339;
+  --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.2);
+  --shadow-pop: 0 8px 32px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; -webkit-tap-highlight-color: transparent; }
+input, select, textarea { font-family: inherit; color: inherit; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  padding: 26px 18px;
+  display: flex; flex-direction: column; gap: 26px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--line);
+  z-index: 20;
+}
+.sidebar__brand { display: flex; align-items: center; gap: 11px; padding: 0 8px; }
+.brand__logo {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--text); color: var(--bg-card);
+  font-size: 16px; font-weight: 500;
+  display: grid; place-items: center; letter-spacing: 0;
+}
+.brand__name { font-size: 17px; font-weight: 500; letter-spacing: 0.02em; }
+.sidebar__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 14px; border-radius: var(--radius-sm);
+  color: var(--text-2); font-size: 15px; font-weight: 450;
+  transition: background 0.15s, color 0.15s; user-select: none;
+}
+.nav-item svg { flex-shrink: 0; opacity: 0.85; }
+.nav-item:hover { background: var(--bg-hover); color: var(--text); }
+.nav-item.active { background: var(--bg-soft); color: var(--text); font-weight: 500; }
+.sidebar__foot { padding: 0 8px; }
+.sidebar__sync { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); }
+.sync__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+.shell { min-height: 100vh; margin-left: var(--sidebar-w); display: flex; flex-direction: column; }
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 34px 14px;
+  background: rgba(246,245,241,0.86);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+}
+html[data-theme="dark"] .topbar { background: rgba(29,29,27,0.86); }
+.topbar__title { font-size: 22px; font-weight: 500; letter-spacing: 0.01em; }
+.topbar__actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--text-2);
+  transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+.view { flex: 1; padding: 8px 34px 60px; max-width: 880px; }
+.tabbar { display: none; }
+.fab { display: none; }
+
+.card {
+  background: var(--bg-card); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px;
+}
+.card + .card { margin-top: 16px; }
+.card__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card__title { font-size: 15px; font-weight: 500; color: var(--text-2); letter-spacing: 0.02em; }
+.card__more { font-size: 13px; color: var(--text-3); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 20px; border-radius: 14px; font-size: 15px; font-weight: 500;
+  letter-spacing: 0.02em; transition: transform 0.08s, background 0.15s, opacity 0.15s;
+}
+.btn:active { transform: scale(0.97); }
+.btn--primary { background: var(--text); color: var(--bg-card); }
+.btn--primary:hover { opacity: 0.9; }
+.btn--soft { background: var(--bg-soft); color: var(--text); }
+.btn--soft:hover { background: var(--line-strong); }
+.btn--ghost { color: var(--text-2); padding: 10px 14px; }
+.btn--ghost:hover { background: var(--bg-hover); color: var(--text); }
+.btn--block { width: 100%; }
+
+.field { margin-bottom: 18px; }
+.field__label { display: block; font-size: 13px; color: var(--text-3); margin-bottom: 8px; letter-spacing: 0.03em; }
+.field__input {
+  width: 100%; padding: 13px 16px; border: 1px solid var(--line);
+  border-radius: 14px; background: var(--bg); font-size: 16px; outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.field__input:focus { border-color: var(--accent); background: var(--bg-card); }
+textarea.field__input { resize: vertical; min-height: 80px; }
+
+.seg { display: flex; gap: 6px; padding: 5px; background: var(--bg-soft); border-radius: 14px; }
+.seg__item {
+  flex: 1; padding: 10px; border-radius: 10px; text-align: center;
+  font-size: 15px; color: var(--text-2); transition: background 0.15s, color 0.15s;
+}
+.seg__item.active { background: var(--bg-card); color: var(--text); font-weight: 500; box-shadow: var(--shadow); }
+
+.cat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.cat { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px; border-radius: 14px; color: var(--text-2); font-size: 12px; transition: background 0.15s; }
+.cat:hover { background: var(--bg-hover); }
+.cat.active { background: var(--bg-soft); color: var(--text); }
+.cat__dot { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; }
+
+.row { display: flex; align-items: center; gap: 14px; padding: 13px 4px; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: none; }
+.row__icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; flex-shrink: 0; background: var(--bg-soft); }
+.row__main { flex: 1; min-width: 0; }
+.row__title { font-size: 15px; font-weight: 450; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row__sub { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+.row__amount { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.amount--expense { color: var(--expense); }
+.amount--income { color: var(--income); }
+
+.empty { padding: 48px 20px; text-align: center; color: var(--text-3); font-size: 14px; }
+.empty__icon { font-size: 34px; margin-bottom: 10px; opacity: 0.5; }
+
+.big-number { font-size: 40px; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.big-number .unit { font-size: 18px; font-weight: 400; color: var(--text-3); margin-left: 3px; }
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat-cell { background: var(--bg-soft); border-radius: var(--radius-sm); padding: 14px; }
+.stat-cell__label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+.stat-cell__value { font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.progress { height: 8px; border-radius: 8px; background: var(--bg-soft); overflow: hidden; }
+.progress__bar { height: 100%; border-radius: 8px; background: var(--accent); transition: width 0.3s ease, background 0.3s; }
+.progress__bar.warn { background: var(--expense); }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 999px; background: var(--bg-soft); font-size: 12.5px; color: var(--text-2); }
+
+.modal-root { position: fixed; inset: 0; z-index: 100; display: grid; place-items: end center; background: rgba(42,42,39,0.32); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+.modal-root[hidden] { display: none; }
+.sheet {
+  width: 100%; max-width: 560px; background: var(--bg-card);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 10px 22px 28px;
+  box-shadow: var(--shadow-pop); max-height: 88vh; overflow-y: auto;
+  animation: sheetUp 0.22s ease;
+}
+@keyframes sheetUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.sheet__grip { width: 38px; height: 4px; border-radius: 4px; background: var(--line-strong); margin: 6px auto 16px; }
+.sheet__title { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 20px; }
+.sheet__actions { display: flex; gap: 10px; margin-top: 20px; }
+.sheet__actions .btn { flex: 1; }
+
+.collage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.collage__item { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--bg-soft); }
+.collage__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.collage__del { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; background: rgba(42,42,39,0.55); color: #fff; font-size: 13px; display: grid; place-items: center; line-height: 1; }
+
+@media (max-width: 1023px) {
+  .sidebar { display: none; }
+  .shell { margin-left: 0; }
+  .topbar { padding: 16px 20px 8px; }
+  .topbar__title { font-size: 20px; }
+  .view { padding: 8px 18px 96px; max-width: 720px; margin: 0 auto; width: 100%; }
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    padding: 6px 10px env(safe-area-inset-bottom);
+    display: flex; align-items: flex-start; justify-content: space-around;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(160%) blur(16px);
+    -webkit-backdrop-filter: saturate(160%) blur(16px);
+    border-top: 1px solid var(--line); z-index: 20;
+  }
+  html[data-theme="dark"] .tabbar { background: rgba(38,38,36,0.92); }
+  .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; font-size: 10.5px; color: var(--text-3); transition: color 0.15s; user-select: none; }
+  .tab-item.active { color: var(--text); }
+  .fab {
+    position: fixed; right: 18px;
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px);
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--text); color: var(--bg-card); box-shadow: var(--shadow-pop);
+    display: grid; place-items: center; z-index: 15; transition: transform 0.08s;
+  }
+  .fab:active { transform: scale(0.94); }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__brand">
+    <div class="brand__logo">记</div>
+    <div class="brand__name">记一笔</div>
+  </div>
+  <nav class="sidebar__nav" id="sidebarNav"></nav>
+  <div class="sidebar__foot">
+    <div class="sidebar__sync" id="syncStatus">
+      <span class="sync__dot"></span>
+      <span class="sync__text">本地存储</span>
+    </div>
+  </div>
+</aside>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar__title" id="pageTitle">概览</div>
+    <div class="topbar__actions">
+      <button class="icon-btn" id="themeToggle" title="切换深浅色">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="view" id="view"></main>
+</div>
+
+<nav class="tabbar" id="tabbar"></nav>
+
+<button class="fab" id="fab" aria-label="记一笔">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div class="modal-root" id="modalRoot" hidden></div>
+
+<script>
+/* ============ 数据层 ============ */
+(function (global) {
+  'use strict';
+  var STORE_KEY = 'ledger-app.v1';
+  var DEFAULT_CATEGORIES = {
+    expense: [
+      { id: 'e_food', name: '餐饮', icon: '🍜' },
+      { id: 'e_transit', name: '交通', icon: '🚕' },
+      { id: 'e_shop', name: '购物', icon: '🛍' },
+      { id: 'e_home', name: '居住', icon: '🏠' },
+      { id: 'e_fun', name: '娱乐', icon: '🎬' },
+      { id: 'e_health', name: '医疗', icon: '💊' },
+      { id: 'e_gift', name: '人情', icon: '🎁' },
+      { id: 'e_daily', name: '日用', icon: '🧴' },
+      { id: 'e_edu', name: '教育', icon: '📚' },
+      { id: 'e_travel', name: '旅行', icon: '✈️' },
+      { id: 'e_other', name: '其他', icon: '·' }
+    ],
+    income: [
+      { id: 'i_salary', name: '工资', icon: '💰' },
+      { id: 'i_invest', name: '理财', icon: '📈' },
+      { id: 'i_hongbao', name: '红包', icon: '🧧' },
+      { id: 'i_part', name: '兼职', icon: '💼' },
+      { id: 'i_other', name: '其他', icon: '·' }
+    ]
+  };
+  var CYCLE_LABELS = { daily: '每天', weekly: '每周', monthly: '每月', yearly: '每年' };
+
+  function defaultDB() {
+    return {
+      version: 1,
+      updatedAt: 0,
+      categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+      transactions: [],
+      budgets: { total: null, byCategory: {} },
+      recurrings: [],
+      settings: { theme: 'light' }
+    };
+  }
+
+  function loadDB() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var db = JSON.parse(raw);
+        var base = defaultDB();
+        db.categories = db.categories || base.categories;
+        db.transactions = db.transactions || [];
+        db.budgets = Object.assign(base.budgets, db.budgets || {});
+        db.recurrings = db.recurrings || [];
+        db.settings = Object.assign(base.settings, db.settings || {});
+        return db;
+      }
+    } catch (e) {}
+    return defaultDB();
+  }
+
+  var db = loadDB();
+
+  function saveDB() {
+    db.updatedAt = Date.now();
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); } catch (e) {}
+  }
+
+  function replaceDB(newDB) { db = Object.assign(defaultDB(), newDB || {}); saveDB(); }
+
+  function uid(prefix) { return (prefix || 'id') + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtDate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseDate(str) { var p = str.split('-').map(Number); return new Date(p[0], (p[1] || 1) - 1, p[2] || 1); }
+  function todayStr() { return fmtDate(new Date()); }
+  function addDays(dateStr, n) { var d = parseDate(dateStr); d.setDate(d.getDate() + n); return fmtDate(d); }
+  function fmtMoney(n) { var v = Number(n) || 0; return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  function getCategories(type) { return db.categories[type] || []; }
+  function getCategory(type, id) { return getCategories(type).find(function (c) { return c.id === id; }); }
+
+  function addTransaction(tx) {
+    var record = {
+      id: uid('t'),
+      type: tx.type === 'income' ? 'income' : 'expense',
+      amount: Math.round((Number(tx.amount) || 0) * 100) / 100,
+      category: tx.category || '',
+      date: tx.date || todayStr(),
+      note: tx.note || '',
+      images: Array.isArray(tx.images) ? tx.images : [],
+      createdAt: Date.now()
+    };
+    db.transactions.push(record);
+    saveDB();
+    return record;
+  }
+
+  function updateTransaction(id, patch) {
+    var tx = db.transactions.find(function (t) { return t.id === id; });
+    if (!tx) return null;
+    if ('amount' in patch) patch.amount = Math.round((Number(patch.amount) || 0) * 100) / 100;
+    Object.assign(tx, patch);
+    saveDB();
+    return tx;
+  }
+
+  function deleteTransaction(id) {
+    db.transactions = db.transactions.filter(function (t) { return t.id !== id; });
+    saveDB();
+  }
+
+  function getTransactions(opts) {
+    opts = opts || {};
+    var list = db.transactions.slice();
+    if (opts.type) list = list.filter(function (t) { return t.type === opts.type; });
+    if (opts.from) list = list.filter(function (t) { return t.date >= opts.from; });
+    if (opts.to) list = list.filter(function (t) { return t.date <= opts.to; });
+    if (opts.category) list = list.filter(function (t) { return t.category === opts.category; });
+    if (opts.keyword) {
+      var kw = String(opts.keyword).trim().toLowerCase();
+      list = list.filter(function (t) {
+        var cat = getCategory(t.type, t.category);
+        return (t.note || '').toLowerCase().indexOf(kw) > -1 || (cat && cat.name.indexOf(kw) > -1);
+      });
+    }
+    list.sort(function (a, b) { return a.date === b.date ? b.createdAt - a.createdAt : (a.date < b.date ? 1 : -1); });
+    return list;
+  }
+
+  function getTransaction(id) { return db.transactions.find(function (t) { return t.id === id; }); }
+  function getBudgets() { return db.budgets; }
+  function setBudget(patch) { Object.assign(db.budgets, patch); saveDB(); }
+  function getRecurrings() { return db.recurrings; }
+
+  function addRecurring(r) {
+    var rec = {
+      id: uid('r'),
+      name: r.name || '',
+      amount: Math.round((Number(r.amount) || 0) * 100) / 100,
+      type: r.type === 'income' ? 'income' : 'expense',
+      category: r.category || '',
+      cycle: r.cycle || 'monthly',
+      nextDate: r.nextDate || todayStr(),
+      enabled: true
+    };
+    db.recurrings.push(rec);
+    saveDB();
+    return rec;
+  }
+
+  function updateRecurring(id, patch) {
+    var rec = db.recurrings.find(function (r) { return r.id === id; });
+    if (!rec) return null;
+    if ('amount' in patch) patch.amount = Math.round((Number(patch.amount) || 0) * 100) / 100;
+    Object.assign(rec, patch);
+    saveDB();
+    return rec;
+  }
+
+  function deleteRecurring(id) { db.recurrings = db.recurrings.filter(function (r) { return r.id !== id; }); saveDB(); }
+
+  function nextCycleDate(dateStr, cycle) {
+    var d = parseDate(dateStr);
+    switch (cycle) {
+      case 'daily': d.setDate(d.getDate() + 1); break;
+      case 'weekly': d.setDate(d.getDate() + 7); break;
+      case 'monthly': d.setMonth(d.getMonth() + 1); break;
+      case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
+    }
+    return fmtDate(d);
+  }
+
+  function settleRecurrings(nowStr) {
+    var today = nowStr || todayStr();
+    var generated = 0;
+    db.recurrings.forEach(function (r) {
+      if (!r.enabled) return;
+      while (r.nextDate <= today) {
+        addTransaction({ type: r.type, amount: r.amount, category: r.category, date: r.nextDate, note: r.name });
+        r.nextDate = nextCycleDate(r.nextDate, r.cycle);
+        generated++;
+      }
+    });
+    if (generated) saveDB();
+    return generated;
+  }
+
+  function summarize(list) {
+    var s = { expense: 0, income: 0, byCategory: {}, byDay: {} };
+    list.forEach(function (t) {
+      if (t.type === 'expense') s.expense += t.amount; else s.income += t.amount;
+      var c = s.byCategory[t.category] || (s.byCategory[t.category] = { amount: 0, count: 0 });
+      c.amount += t.amount; c.count += 1;
+      var d = s.byDay[t.date] || (s.byDay[t.date] = { expense: 0, income: 0 });
+      if (t.type === 'expense') d.expense += t.amount; else d.income += t.amount;
+    });
+    return s;
+  }
+
+  function rangeOf(period, anchor) {
+    var a = anchor ? parseDate(anchor) : new Date();
+    var from, to;
+    if (period === 'day') { from = fmtDate(a); to = fmtDate(a); }
+    else if (period === 'week') {
+      var day = (a.getDay() + 6) % 7;
+      var start = new Date(a); start.setDate(a.getDate() - day);
+      var end = new Date(start); end.setDate(start.getDate() + 6);
+      from = fmtDate(start); to = fmtDate(end);
+    } else {
+      from = fmtDate(new Date(a.getFullYear(), a.getMonth(), 1));
+      to = fmtDate(new Date(a.getFullYear(), a.getMonth() + 1, 0));
+    }
+    return { from: from, to: to };
+  }
+
+  function monthCompare(anchor) {
+    var a = anchor ? parseDate(anchor) : new Date();
+    var thisList = getTransactions({ from: fmtDate(new Date(a.getFullYear(), a.getMonth(), 1)), to: fmtDate(new Date(a.getFullYear(), a.getMonth() + 1, 0)) });
+    var lastList = getTransactions({ from: fmtDate(new Date(a.getFullYear(), a.getMonth() - 1, 1)), to: fmtDate(new Date(a.getFullYear(), a.getMonth(), 0)) });
+    var cur = summarize(thisList), prev = summarize(lastList);
+    return {
+      curExpense: cur.expense, curIncome: cur.income,
+      prevExpense: prev.expense, prevIncome: prev.income,
+      expenseDelta: prev.expense ? (cur.expense - prev.expense) / prev.expense : null
+    };
+  }
+
+  function getSettings() { return db.settings; }
+  function setSettings(patch) { Object.assign(db.settings, patch); saveDB(); }
+
+  global.Ledger = {
+    DEFAULT_CATEGORIES: DEFAULT_CATEGORIES, CYCLE_LABELS: CYCLE_LABELS,
+    loadDB: loadDB, saveDB: saveDB, getDB: function () { return db; },
+    uid: uid, fmtDate: fmtDate, parseDate: parseDate, todayStr: todayStr, addDays: addDays, fmtMoney: fmtMoney,
+    rangeOf: rangeOf, monthCompare: monthCompare, summarize: summarize,
+    getCategories: getCategories, getCategory: getCategory,
+    addTransaction: addTransaction, updateTransaction: updateTransaction, deleteTransaction: deleteTransaction,
+    getTransactions: getTransactions, getTransaction: getTransaction,
+    getBudgets: getBudgets, setBudget: setBudget,
+    getRecurrings: getRecurrings, addRecurring: addRecurring, updateRecurring: updateRecurring,
+    deleteRecurring: deleteRecurring, settleRecurrings: settleRecurrings, nextCycleDate: nextCycleDate,
+    getSettings: getSettings, setSettings: setSettings, replaceDB: replaceDB
+  };
+})(window);
+</script>
+
+<script>
+/* ============ 图表（懒加载） ============ */
+(function (global) {
+  'use strict';
+  var PALETTE = ['#C98E7E', '#A9B8C6', '#8FA98C', '#C9B8A6', '#B8A6C9', '#A6C9B8', '#C9A6A6', '#9CA6B8', '#C4C9A6', '#B89CA6'];
+  var CDN_SOURCES = [
+    'https://cdn.bootcdn.net/ajax/libs/Chart.js/4.5.0/chart.umd.min.js',
+    'https://unpkg.com/chart.js@4.5.0/dist/chart.umd.js',
+    'https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js'
+  ];
+  var loadPromise = null;
+  function loadChartJS() {
+    if (typeof global.Chart !== 'undefined') return Promise.resolve(global.Chart);
+    if (loadPromise) return loadPromise;
+    loadPromise = new Promise(function (resolve, reject) {
+      var idx = 0;
+      var next = function () {
+        if (idx >= CDN_SOURCES.length) { reject(new Error('图表库加载失败，请检查网络')); return; }
+        var s = document.createElement('script');
+        s.src = CDN_SOURCES[idx++];
+        s.onload = function () { resolve(global.Chart); };
+        s.onerror = next;
+        document.head.appendChild(s);
+      };
+      next();
+    });
+    return loadPromise;
+  }
+  var registry = {};
+  function destroy(key) { if (registry[key]) { try { registry[key].destroy(); } catch (e) {} delete registry[key]; } }
+  function getCSS(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function baseOpts() {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#2A2A27', padding: 10, cornerRadius: 10, titleFont: { size: 12 }, bodyFont: { size: 13 } }
+      }
+    };
+  }
+  function showLoadError(canvas, msg) {
+    var card = canvas && canvas.closest ? canvas.closest('.card') : null;
+    if (card) { var n = document.createElement('div'); n.className = 'empty'; n.style.padding = '20px 0'; n.textContent = msg; card.appendChild(n); }
+  }
+  function renderDonut(key, canvas, items) {
+    loadChartJS().then(function () {
+      destroy(key);
+      var labels = items.map(function (i) { return i.name; });
+      var data = items.map(function (i) { return i.amount; });
+      var colors = items.map(function (_, idx) { return PALETTE[idx % PALETTE.length]; });
+      registry[key] = new global.Chart(canvas, {
+        type: 'doughnut',
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: getCSS('--bg-card'), hoverOffset: 4 }] },
+        options: Object.assign(baseOpts(), {
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: function (ctx) { var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0) || 1; var pct = ((ctx.parsed / total) * 100).toFixed(1); return ' ' + ctx.label + '  ' + global.Ledger.fmtMoney(ctx.parsed) + '（' + pct + '%）'; } } }
+          }
+        })
+      });
+    }).catch(function (e) { showLoadError(canvas, e.message); });
+  }
+  function renderBars(key, canvas, labels, expenseData, incomeData) {
+    loadChartJS().then(function () {
+      destroy(key);
+      registry[key] = new global.Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '支出', data: expenseData, backgroundColor: getCSS('--expense'), borderRadius: 6, borderSkipped: false, maxBarThickness: 26 },
+            { label: '收入', data: incomeData, backgroundColor: getCSS('--income'), borderRadius: 6, borderSkipped: false, maxBarThickness: 26 }
+          ]
+        },
+        options: Object.assign(baseOpts(), {
+          scales: {
+            x: { grid: { display: false }, ticks: { color: getCSS('--text-3'), font: { size: 11 } }, border: { display: false } },
+            y: { grid: { color: getCSS('--line') }, ticks: { color: getCSS('--text-3'), font: { size: 11 } }, border: { display: false }, beginAtZero: true }
+          }
+        })
+      });
+    }).catch(function (e) { showLoadError(canvas, e.message); });
+  }
+  global.LedgerCharts = { renderDonut: renderDonut, renderBars: renderBars, destroy: destroy };
+})(window);
+</script>
+
+<script>
+/* ============ AI 识图 ============ */
+(function (global) {
+  'use strict';
+  var L = Ledger;
+  function apiBase() { return (L.getSettings().apiBase || '').trim().replace(/\/+$/, ''); }
+  function configured() { return !!apiBase(); }
+  function recognize(imageDataUrl) {
+    var base = apiBase();
+    if (!base) return Promise.reject(new Error('未配置后端地址，请到「设置 → 云同步」填写'));
+    return fetch(base + '/api/recognize', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageDataUrl })
+    }).then(function (res) { return res.json(); }).then(function (r) {
+      if (r && r.error) throw new Error(r.error);
+      return r || { items: [] };
+    });
+  }
+  function crop(dataUrl, x, y, w, h) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var cw = Math.max(1, Math.round(img.width * w));
+          var ch = Math.max(1, Math.round(img.height * h));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, img.width * x, img.height * y, img.width * w, img.height * h, 0, 0, cw, ch);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function () { reject(new Error('图片加载失败')); };
+      img.src = dataUrl;
+    });
+  }
+  global.AI = { apiBase: apiBase, configured: configured, recognize: recognize, crop: crop };
+})(window);
+</script>
+
+<script>
+/* ============ 云同步 ============ */
+(function (global) {
+  'use strict';
+  var L = Ledger;
+  function apiBase() { return (L.getSettings().apiBase || '').trim().replace(/\/+$/, ''); }
+  function configured() { return !!apiBase(); }
+  function syncKey() {
+    var k = L.getSettings().syncKey;
+    if (!k) { k = 'sk_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6); L.setSettings({ syncKey: k }); }
+    return k;
+  }
+  function post(action, payload) {
+    var base = apiBase();
+    if (!base) return Promise.reject(new Error('未配置后端地址'));
+    return fetch(base + '/api/sync', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ action: action, syncKey: syncKey() }, payload || {}))
+    }).then(function (res) { return res.json(); }).then(function (r) {
+      if (r && r.error) throw new Error(r.error);
+      return r;
+    });
+  }
+  function push() { return post('push', { data: L.getDB() }); }
+  function pull() { return post('pull'); }
+  function merge(local, remote) {
+    if (!remote) return local;
+    var txMap = {};
+    (local.transactions || []).forEach(function (t) { txMap[t.id] = t; });
+    (remote.transactions || []).forEach(function (t) {
+      var a = txMap[t.id];
+      if (!a || (t.updatedAt || t.createdAt || 0) > (a.updatedAt || a.createdAt || 0)) txMap[t.id] = t;
+    });
+    var merged = Object.assign({}, local, { transactions: Object.values(txMap) });
+    if ((remote.updatedAt || 0) > (local.updatedAt || 0)) {
+      merged.categories = remote.categories;
+      merged.budgets = remote.budgets;
+      merged.recurrings = remote.recurrings;
+    }
+    return merged;
+  }
+  function syncNow() {
+    return pull().then(function (r) {
+      if (r.data) L.replaceDB(merge(L.getDB(), r.data));
+      return push().then(function (p) {
+        return { pulled: !!r.data, pushedAt: p.updatedAt };
+      });
+    });
+  }
+  global.Sync = { apiBase: apiBase, configured: configured, syncKey: syncKey, push: push, pull: pull, merge: merge, syncNow: syncNow };
+})(window);
+</script>
+
+<script>
+/* 全局错误提示：即使后续脚本失败，也能把错误显示出来 */
+window.addEventListener('error', function (e) {
+  try {
+    var box = document.getElementById('errBanner');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'errBanner';
+      box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;background:#C98E7E;color:#fff;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5;z-index:99999;';
+      document.body.appendChild(box);
+    }
+    box.textContent = '出错：' + (e.message || '未知错误');
+  } catch (err) {}
+});
+</script>
+
+<script>
+/* ============ 应用逻辑 ============ */
+(function () {
+  'use strict';
+  var L = Ledger;
+  var state = {
+    route: 'overview',
+    listFilter: { type: 'all', month: '', keyword: '' },
+    statsPeriod: 'month',
+    statsAnchor: L.todayStr()
+  };
+
+  var ICONS = {
+    overview: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>',
+    list: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+    stats: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3-4 3 3 4-6"/></svg>',
+    budget: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    recurring: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v5h-5"/></svg>',
+    settings: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h0a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h0a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>',
+    camera: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h2l1.5-2h6L15 8h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"/><circle cx="12" cy="13.5" r="3.2"/></svg>',
+    search: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    back: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>'
+  };
+
+  var NAV = [
+    { key: 'overview', label: '概览', icon: ICONS.overview },
+    { key: 'list', label: '流水', icon: ICONS.list },
+    { key: 'stats', label: '统计', icon: ICONS.stats },
+    { key: 'budget', label: '预算', icon: ICONS.budget },
+    { key: 'recurring', label: '周期', icon: ICONS.recurring },
+    { key: 'settings', label: '设置', icon: ICONS.settings }
+  ];
+  var TITLES = { overview: '概览', list: '流水', stats: '统计', budget: '预算', recurring: '周期支出', settings: '设置' };
+  var TAB_KEYS = ['overview', 'list', 'stats', 'budget', 'settings'];
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function money(n) { return L.fmtMoney(n); }
+  function catName(type, id) { var c = L.getCategory(type, id); return c ? c.name : '未分类'; }
+  function catIcon(type, id) { var c = L.getCategory(type, id); return c ? c.icon : '·'; }
+
+  function renderNav() {
+    $('#sidebarNav').innerHTML = NAV.map(function (n) {
+      return '<button class="nav-item' + (state.route === n.key ? ' active' : '') + '" data-route="' + n.key + '">' + n.icon + '<span>' + n.label + '</span></button>';
+    }).join('');
+    $('#tabbar').innerHTML = TAB_KEYS.map(function (key) {
+      var n = NAV.find(function (x) { return x.key === key; });
+      return '<button class="tab-item' + (state.route === key ? ' active' : '') + '" data-route="' + key + '">' + n.icon + '<span>' + n.label + '</span></button>';
+    }).join('');
+  }
+
+  function go(route) { state.route = route; renderNav(); render(); window.scrollTo(0, 0); }
+
+  function render() {
+    $('#pageTitle').textContent = TITLES[state.route];
+    var fn = { overview: renderOverview, list: renderList, stats: renderStats, budget: renderBudget, recurring: renderRecurring, settings: renderSettings }[state.route];
+    $('#view').innerHTML = fn();
+    afterRender(state.route);
+  }
+
+  function renderOverview() {
+    var today = L.todayStr();
+    var range = L.rangeOf('month', today);
+    var txs = L.getTransactions({ from: range.from, to: range.to });
+    var s = L.summarize(txs);
+    var cmp = L.monthCompare(today);
+    var recent = L.getTransactions().slice(0, 8);
+    var totalBudget = L.getBudgets().total;
+
+    var deltaHtml = cmp.expenseDelta == null ? '' : '<div class="row__sub">较上月 ' + (cmp.expenseDelta >= 0 ? '↑ ' : '↓ ') + Math.abs(cmp.expenseDelta * 100).toFixed(0) + '%</div>';
+    var budgetLine = '';
+    if (totalBudget) {
+      var pct = Math.min(100, Math.round(s.expense / totalBudget * 100));
+      budgetLine = '<div class="card"><div class="card__head"><span class="card__title">本月预算</span><span class="card__more">' + money(s.expense) + ' / ' + money(totalBudget) + '</span></div><div class="progress"><div class="progress__bar' + (pct >= 90 ? ' warn' : '') + '" style="width:' + pct + '%"></div></div></div>';
+    }
+    var recentHtml = recent.length ? recent.map(rowHtml).join('') : '<div class="empty"><div class="empty__icon">🌸</div>还没有记录，点右下角记第一笔吧</div>';
+
+    return '<div class="card" style="text-align:center;padding:30px 22px;">' +
+      '<div class="card__head" style="justify-content:center;margin-bottom:8px;"><span class="card__title">' + today + ' · 本月结余</span></div>' +
+      '<div class="big-number" style="color:' + (s.income - s.expense >= 0 ? 'var(--income)' : 'var(--expense)') + '">' + money(s.income - s.expense) + '<span class="unit">元</span></div>' +
+      '<div class="stat-row" style="margin-top:20px;">' +
+      '<div class="stat-cell"><div class="stat-cell__label">支出</div><div class="stat-cell__value" style="color:var(--expense)">' + money(s.expense) + '</div>' + deltaHtml + '</div>' +
+      '<div class="stat-cell"><div class="stat-cell__label">收入</div><div class="stat-cell__value" style="color:var(--income)">' + money(s.income) + '</div></div>' +
+      '<div class="stat-cell"><div class="stat-cell__label">笔数</div><div class="stat-cell__value">' + txs.length + '</div></div>' +
+      '</div></div>' + budgetLine +
+      '<div class="card"><div class="card__head"><span class="card__title">最近记录</span><button class="btn btn--ghost" style="padding:4px 10px;font-size:13px" onclick="App.go(\'list\')">查看全部</button></div>' + recentHtml + '</div>';
+  }
+
+  function rowHtml(t) {
+    var isExpense = t.type === 'expense';
+    return '<div class="row" style="cursor:pointer" onclick="App.openEntry(\'' + t.id + '\')">' +
+      '<div class="row__icon" style="background:' + (isExpense ? 'var(--expense-bg)' : 'var(--income-bg)') + '">' + esc(catIcon(t.type, t.category)) + '</div>' +
+      '<div class="row__main"><div class="row__title">' + esc(catName(t.type, t.category)) + (t.note ? '<span style="color:var(--text-3);font-size:13px"> · ' + esc(t.note) + '</span>' : '') + '</div>' +
+      '<div class="row__sub">' + t.date + (t.images && t.images.length ? ' · 📷' + t.images.length : '') + '</div></div>' +
+      '<div class="row__amount amount--' + (isExpense ? 'expense' : 'income') + '">' + (isExpense ? '-' : '+') + money(t.amount) + '</div></div>';
+  }
+
+  function renderList() {
+    var f = state.listFilter;
+    var txs = L.getTransactions({ type: f.type === 'all' ? null : f.type, from: f.month ? f.month + '-01' : null, to: f.month ? f.month + '-31' : null, keyword: f.keyword });
+    var s = L.summarize(txs);
+    var months = recentMonths();
+    var typeSeg = '<div class="seg">' + ['all', 'expense', 'income'].map(function (t) {
+      var label = t === 'all' ? '全部' : (t === 'expense' ? '支出' : '收入');
+      return '<button class="seg__item' + (f.type === t ? ' active' : '') + '" onclick="App.setListType(\'' + t + '\')">' + label + '</button>';
+    }).join('') + '</div>';
+    return '<div style="margin-bottom:14px">' + typeSeg + '</div>' +
+      '<div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">' +
+      '<div style="position:relative;flex:1"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3)">' + ICONS.search + '</span>' +
+      '<input class="field__input" style="padding-left:38px" placeholder="搜索备注或分类" value="' + esc(f.keyword) + '" oninput="App.setListKeyword(this.value)"></div>' +
+      '<select class="field__input" style="width:130px;padding:12px" onchange="App.setListMonth(this.value)"><option value="">全部月份</option>' +
+      months.map(function (m) { return '<option value="' + m + '"' + (f.month === m ? ' selected' : '') + '>' + m + '</option>'; }).join('') + '</select></div>' +
+      '<div class="card"><div class="card__head" style="margin-bottom:6px"><span class="card__title">共 ' + txs.length + ' 笔</span>' +
+      '<span style="font-size:13px;color:var(--text-3)">支出 ' + money(s.expense) + ' · 收入 ' + money(s.income) + '</span></div>' +
+      (txs.length ? txs.map(rowHtml).join('') : '<div class="empty"><div class="empty__icon">🍃</div>没有符合条件的记录</div>') + '</div>';
+  }
+
+  function recentMonths() {
+    var set = {};
+    var now = new Date();
+    for (var i = 0; i < 12; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      set[d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')] = true;
+    }
+    L.getTransactions().forEach(function (t) { set[t.date.slice(0, 7)] = true; });
+    return Object.keys(set).sort().reverse();
+  }
+
+  function renderStats() {
+    var p = state.statsPeriod, anchor = state.statsAnchor;
+    var range = L.rangeOf(p, anchor);
+    var txs = L.getTransactions({ from: range.from, to: range.to });
+    var s = L.summarize(txs);
+    var expenseTxs = txs.filter(function (t) { return t.type === 'expense'; });
+    var expS = L.summarize(expenseTxs);
+    var catRows = Object.keys(expS.byCategory).map(function (id) {
+      var v = expS.byCategory[id];
+      return { id: id, amount: v.amount, count: v.count, name: catName('expense', id), icon: catIcon('expense', id) };
+    }).sort(function (a, b) { return b.amount - a.amount; });
+
+    var labels = [], expData = [], incData = [];
+    if (p === 'month') {
+      var y = Number(anchor.slice(0, 4)), m = Number(anchor.slice(5, 7));
+      var days = new Date(y, m, 0).getDate();
+      for (var d = 1; d <= days; d++) {
+        var ds = anchor.slice(0, 8) + String(d).padStart(2, '0');
+        var day = s.byDay[ds] || { expense: 0, income: 0 };
+        labels.push(String(d)); expData.push(day.expense); incData.push(day.income);
+      }
+    } else if (p === 'week') {
+      var start = L.parseDate(range.from);
+      for (var i = 0; i < 7; i++) {
+        var ds2 = L.addDays(range.from, i);
+        var day2 = s.byDay[ds2] || { expense: 0, income: 0 };
+        labels.push('周' + ['一', '二', '三', '四', '五', '六', '日'][(start.getDay() + 6 + i) % 7]);
+        expData.push(day2.expense); incData.push(day2.income);
+      }
+    } else {
+      var day3 = s.byDay[anchor] || { expense: 0, income: 0 };
+      labels = ['支出', '收入']; expData = [day3.expense, 0]; incData = [0, day3.income];
+    }
+
+    var periodSeg = '<div class="seg">' + [['day', '日'], ['week', '周'], ['month', '月']].map(function (k) {
+      return '<button class="seg__item' + (p === k[0] ? ' active' : '') + '" onclick="App.setStatsPeriod(\'' + k[0] + '\')">' + k[1] + '</button>';
+    }).join('') + '</div>';
+    var nav = '<div style="display:flex;align-items:center;gap:6px"><button class="icon-btn" onclick="App.shiftStats(-1)">' + ICONS.back + '</button>' +
+      '<span style="font-size:14px;color:var(--text-2)">' + rangeLabel(p, anchor) + '</span>' +
+      '<button class="icon-btn" onclick="App.shiftStats(1)" style="transform:rotate(180deg)">' + ICONS.back + '</button></div>';
+
+    var donutHtml = catRows.length ?
+      '<div style="position:relative;height:210px"><canvas id="donutChart"></canvas></div>' +
+      '<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">' +
+      catRows.slice(0, 6).map(function (c) {
+        var pct = expS.expense ? Math.round(c.amount / expS.expense * 100) : 0;
+        return '<div class="row" style="padding:8px 4px"><div class="row__icon" style="width:32px;height:32px;font-size:15px">' + esc(c.icon) + '</div>' +
+          '<div class="row__main"><div class="row__title">' + esc(c.name) + '</div><div class="row__sub">' + c.count + ' 笔</div></div>' +
+          '<div style="text-align:right"><div class="row__amount amount--expense">' + money(c.amount) + '</div><div class="row__sub">' + pct + '%</div></div></div>';
+      }).join('') + '</div>' :
+      '<div class="empty"><div class="empty__icon">🌿</div>暂无支出数据</div>';
+
+    return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px">' + periodSeg + nav + '</div>' +
+      '<div class="card" style="margin-bottom:16px"><div class="stat-row" style="margin-bottom:16px">' +
+      '<div class="stat-cell"><div class="stat-cell__label">支出</div><div class="stat-cell__value" style="color:var(--expense)">' + money(s.expense) + '</div></div>' +
+      '<div class="stat-cell"><div class="stat-cell__label">收入</div><div class="stat-cell__value" style="color:var(--income)">' + money(s.income) + '</div></div>' +
+      '<div class="stat-cell"><div class="stat-cell__label">结余</div><div class="stat-cell__value">' + money(s.income - s.expense) + '</div></div></div>' +
+      '<div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div></div>' +
+      '<div class="card"><div class="card__head"><span class="card__title">支出分类占比</span></div>' + donutHtml + '</div>';
+  }
+
+  function rangeLabel(period, anchor) {
+    if (period === 'month') return anchor.slice(0, 7);
+    if (period === 'week') { var r = L.rangeOf('week', anchor); return r.from + ' ~ ' + r.to; }
+    return anchor;
+  }
+
+  function renderBudget() {
+    var b = L.getBudgets();
+    var range = L.rangeOf('month', L.todayStr());
+    var txs = L.getTransactions({ from: range.from, to: range.to, type: 'expense' });
+    var s = L.summarize(txs);
+    var total = b.total;
+    var totalPct = total ? Math.min(100, Math.round(s.expense / total * 100)) : 0;
+    var totalBlock = '<div class="card" style="margin-bottom:16px"><div class="card__head"><span class="card__title">总预算</span>' +
+      (total ? '<button class="btn btn--ghost" style="font-size:13px;padding:4px 10px" onclick="App.openBudgetSheet()">编辑</button>' : '') + '</div>' +
+      (total ? '<div class="big-number" style="font-size:32px">' + money(s.expense) + '<span class="unit"> / ' + money(total) + ' 元</span></div>' +
+      '<div class="progress" style="margin-top:12px"><div class="progress__bar' + (totalPct >= 90 ? ' warn' : '') + '" style="width:' + totalPct + '%"></div></div>' +
+      '<div class="row__sub" style="margin-top:8px;text-align:right">剩余 ' + money(Math.max(0, total - s.expense)) + ' · ' + totalPct + '%</div>' :
+      '<div class="empty" style="padding:28px"><div class="empty__icon">🎯</div>还没有设置预算<br><br><button class="btn btn--primary" onclick="App.openBudgetSheet()">设置总预算</button></div>') + '</div>';
+    var catBudgets = Object.keys(b.byCategory || {});
+    var catHtml = catBudgets.length ? catBudgets.map(function (cid) {
+      var amt = b.byCategory[cid];
+      var spent = (s.byCategory[cid] || {}).amount || 0;
+      var pct = amt ? Math.min(100, Math.round(spent / amt * 100)) : 0;
+      return '<div class="card" style="margin-bottom:12px;padding:18px"><div class="card__head" style="margin-bottom:10px"><span class="card__title">' + esc(catIcon('expense', cid)) + ' ' + esc(catName('expense', cid)) + '</span><span class="card__more">' + money(spent) + ' / ' + money(amt) + '</span></div>' +
+        '<div class="progress"><div class="progress__bar' + (pct >= 90 ? ' warn' : '') + '" style="width:' + pct + '%"></div></div></div>';
+    }).join('') : '';
+    return totalBlock + '<div class="card"><div class="card__head"><span class="card__title">分类预算</span>' +
+      '<button class="btn btn--ghost" style="font-size:13px;padding:4px 10px" onclick="App.openCatBudgetSheet()">添加</button></div>' +
+      (catHtml || '<div class="empty" style="padding:24px">可为特定分类单独设置预算额度</div>') + '</div>';
+  }
+
+  function renderRecurring() {
+    var list = L.getRecurrings();
+    return '<div class="card"><div class="card__head"><span class="card__title">周期记账</span>' +
+      '<button class="btn btn--soft" style="font-size:13px;padding:7px 14px" onclick="App.openRecurringSheet()">＋ 新建</button></div>' +
+      (list.length ? list.map(function (r) {
+        var c = L.getCategory(r.type, r.category);
+        return '<div class="row"><div class="row__icon">' + esc(c ? c.icon : '·') + '</div>' +
+          '<div class="row__main"><div class="row__title">' + esc(r.name || (c ? c.name : '')) + '</div>' +
+          '<div class="row__sub">' + L.CYCLE_LABELS[r.cycle] + ' · 下次 ' + r.nextDate + '</div></div>' +
+          '<div class="row__amount amount--' + (r.type === 'expense' ? 'expense' : 'income') + '">' + money(r.amount) + '</div>' +
+          '<button class="icon-btn" onclick="App.openRecurringSheet(\'' + r.id + '\')">' + ICONS.edit + '</button>' +
+          '<button class="icon-btn" style="color:var(--expense)" onclick="App.deleteRecurring(\'' + r.id + '\')">' + ICONS.trash + '</button></div>';
+      }).join('') : '<div class="empty"><div class="empty__icon">🔁</div>房租、会员费、订阅等固定支出<br>设置后到期自动记账</div>') + '</div>';
+  }
+
+  function renderSettings() {
+    var settings = L.getSettings();
+    return '<div class="card"><div class="card__head"><span class="card__title">偏好</span></div>' +
+      '<div class="row" style="cursor:pointer" onclick="App.toggleTheme()"><div class="row__main"><div class="row__title">深色模式</div>' +
+      '<div class="row__sub">' + (settings.theme === 'dark' ? '已开启' : '已关闭') + '</div></div>' +
+      '<button class="btn btn--soft" style="padding:8px 14px;font-size:13px">' + (settings.theme === 'dark' ? '关闭' : '开启') + '</button></div></div>' +
+      '<div class="card"><div class="card__head"><span class="card__title">数据</span></div>' +
+      '<div class="row" style="cursor:pointer" onclick="App.exportCSV()"><div class="row__main"><div class="row__title">导出 CSV</div><div class="row__sub">备份所有流水记录</div></div><span style="color:var(--text-3)">›</span></div>' +
+      '<div class="row" style="cursor:pointer" onclick="App.clearAll()"><div class="row__main"><div class="row__title" style="color:var(--expense)">清空所有数据</div><div class="row__sub">不可恢复，请先导出备份</div></div><span style="color:var(--text-3)">›</span></div></div>' +
+      '<div class="card"><div class="card__head"><span class="card__title">云同步</span></div>' +
+      '<div class="field"><div class="field__label">后端地址（Worker 部署后得到）</div><input class="field__input" id="apiBaseInput" placeholder="https://你的worker.workers.dev" value="' + esc(settings.apiBase || '') + '">' +
+      '<button class="btn btn--soft btn--block" style="margin-top:8px" onclick="App.saveApiBase()">保存地址</button></div>' +
+      '<div class="field"><div class="field__label">同步码（多设备填同一个即可互通）</div>' +
+      '<div style="display:flex;gap:8px;align-items:center"><input class="field__input" id="syncKeyInput" readonly value="' + esc(Sync.syncKey()) + '">' +
+      '<button class="btn btn--soft" onclick="App.copySyncKey()">复制</button></div></div>' +
+      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn--primary" style="flex:1" onclick="App.syncNow()">立即同步</button><span id="syncMsg" style="font-size:13px;color:var(--text-3)"></span></div></div>' +
+      '<div class="card"><div class="card__head"><span class="card__title">关于</span></div><div class="row__sub" style="padding:4px 0">记一笔 v0.2 · 极简记账</div></div>';
+  }
+
+  function afterRender(route) {
+    if (route !== 'stats') return;
+    requestAnimationFrame(function () {
+      var p = state.statsPeriod;
+      var range = L.rangeOf(p, state.statsAnchor);
+      var txs = L.getTransactions({ from: range.from, to: range.to });
+      var s = L.summarize(txs);
+      var expenseTxs = txs.filter(function (t) { return t.type === 'expense'; });
+      var expS = L.summarize(expenseTxs);
+      var catRows = Object.keys(expS.byCategory).map(function (id) {
+        var v = expS.byCategory[id];
+        return { id: id, amount: v.amount, count: v.count, name: catName('expense', id), icon: catIcon('expense', id) };
+      }).sort(function (a, b) { return b.amount - a.amount; });
+      var labels = [], expData = [], incData = [];
+      if (p === 'month') {
+        var y = Number(state.statsAnchor.slice(0, 4)), m = Number(state.statsAnchor.slice(5, 7));
+        var days = new Date(y, m, 0).getDate();
+        for (var d = 1; d <= days; d++) {
+          var ds = state.statsAnchor.slice(0, 8) + String(d).padStart(2, '0');
+          var day = s.byDay[ds] || { expense: 0, income: 0 };
+          labels.push(String(d)); expData.push(day.expense); incData.push(day.income);
+        }
+      } else if (p === 'week') {
+        var start = L.parseDate(range.from);
+        for (var i = 0; i < 7; i++) {
+          var ds2 = L.addDays(range.from, i);
+          var day2 = s.byDay[ds2] || { expense: 0, income: 0 };
+          labels.push('周' + ['一', '二', '三', '四', '五', '六', '日'][(start.getDay() + 6 + i) % 7]);
+          expData.push(day2.expense); incData.push(day2.income);
+        }
+      } else {
+        var day3 = s.byDay[state.statsAnchor] || { expense: 0, income: 0 };
+        labels = ['支出', '收入']; expData = [day3.expense, 0]; incData = [0, day3.income];
+      }
+      var donutCanvas = $('#donutChart'), trendCanvas = $('#trendChart');
+      if (catRows.length && donutCanvas) LedgerCharts.renderDonut('donut', donutCanvas, catRows);
+      if (trendCanvas) LedgerCharts.renderBars('trend', trendCanvas, labels, expData, incData);
+    });
+  }
+
+  function openSheet(html) {
+    var root = $('#modalRoot');
+    root.innerHTML = '<div class="sheet"><div class="sheet__grip"></div>' + html + '</div>';
+    root.hidden = false;
+    return $('.sheet');
+  }
+  function closeSheet() { var root = $('#modalRoot'); root.hidden = true; root.innerHTML = ''; }
+
+  var entryImages = [];
+  var entryType = 'expense';
+
+  function openEntry(txId) {
+    var t = txId ? L.getTransaction(txId) : null;
+    entryType = t ? t.type : 'expense';
+    entryImages = t && t.images ? t.images.slice() : [];
+    var isEdit = !!t;
+    var cats = L.getCategories(entryType);
+    var catHtml = cats.map(function (c) {
+      return '<button class="cat' + ((t ? t.category : cats[0].id) === c.id ? ' active' : '') + '" data-cat="' + c.id + '"><span class="cat__dot" style="background:var(--bg-soft)">' + esc(c.icon) + '</span><span>' + esc(c.name) + '</span></button>';
+    }).join('');
+
+    var html = '<div class="sheet__title">' + (isEdit ? '编辑记录' : '记一笔') + '</div>' +
+      '<div class="field"><div class="seg">' +
+      '<button class="seg__item' + (entryType === 'expense' ? ' active' : '') + '" data-type="expense">支出</button>' +
+      '<button class="seg__item' + (entryType === 'income' ? ' active' : '') + '" data-type="income">收入</button></div></div>' +
+      '<div class="field"><div class="field__label">金额</div><input class="field__input" id="entryAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" value="' + (t ? t.amount : '') + '" style="font-size:28px;font-weight:500"></div>' +
+      '<div class="field"><div class="field__label">分类</div><div class="cat-grid" id="entryCats">' + catHtml + '</div></div>' +
+      '<div class="field"><div class="field__label">日期</div><input class="field__input" id="entryDate" type="date" value="' + (t ? t.date : L.todayStr()) + '"></div>' +
+      '<div class="field"><div class="field__label">备注</div><input class="field__input" id="entryNote" placeholder="写点什么…" value="' + (t ? esc(t.note) : '') + '"></div>' +
+      '<div class="field"><div class="field__label" id="entryImgLabel">图片（' + entryImages.length + '）</div>' +
+      '<input id="entryImageInput" type="file" accept="image/*" multiple style="display:none">' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn btn--soft" style="flex:1" onclick="document.getElementById(\'entryImageInput\').click()">' + ICONS.camera + ' 拍照 / 选图</button>' +
+      (entryImages.length ? '<button class="btn btn--soft" id="aiBtn" style="flex:1" onclick="App.recognizeImages()">✦ AI 识物</button>' : '') + '</div>' +
+      (entryImages.length ? '<div class="collage" id="entryCollage">' + collageHtml() + '</div>' : '') +
+      '<div id="aiResult" style="margin-top:8px;font-size:13px;color:var(--text-2)"></div></div>' +
+      '<div class="sheet__actions"><button class="btn btn--ghost" onclick="App.closeSheet()">取消</button>' +
+      (isEdit ? '<button class="btn btn--ghost" style="color:var(--expense)" onclick="App.deleteEntry(\'' + t.id + '\')">删除</button>' : '') +
+      '<button class="btn btn--primary" onclick="App.saveEntry(\'' + (t ? t.id : '') + '\')">保存</button></div>';
+
+    var sheet = openSheet(html);
+    var selectedCat = t ? t.category : cats[0].id;
+
+    function onCatClick(e) {
+      sheet.querySelectorAll('#entryCats [data-cat]').forEach(function (el) { el.classList.remove('active'); });
+      e.currentTarget.classList.add('active');
+      selectedCat = e.currentTarget.getAttribute('data-cat');
+    }
+
+    sheet.querySelectorAll('[data-type]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        entryType = btn.getAttribute('data-type');
+        sheet.querySelectorAll('[data-type]').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        var grid = sheet.querySelector('#entryCats');
+        var newCats = L.getCategories(entryType);
+        grid.innerHTML = newCats.map(function (c) {
+          return '<button class="cat" data-cat="' + c.id + '"><span class="cat__dot" style="background:var(--bg-soft)">' + esc(c.icon) + '</span><span>' + esc(c.name) + '</span></button>';
+        }).join('');
+        grid.querySelectorAll('[data-cat]').forEach(function (el) { el.addEventListener('click', onCatClick); });
+        selectedCat = newCats[0].id;
+        var first = grid.querySelector('[data-cat="' + selectedCat + '"]');
+        if (first) first.classList.add('active');
+      });
+    });
+    sheet.querySelectorAll('#entryCats [data-cat]').forEach(function (el) { el.addEventListener('click', onCatClick); });
+
+    sheet.querySelector('#entryImageInput').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      var done = 0;
+      files.forEach(function (file) {
+        compressImage(file, function (dataUrl) {
+          entryImages.push(dataUrl);
+          done++;
+          if (done === files.length) refreshEntryImagesUI(sheet);
+        });
+      });
+    });
+  }
+
+  function collageHtml() {
+    return entryImages.map(function (img, i) {
+      return '<div class="collage__item"><img src="' + img + '" alt=""><button class="collage__del" data-img="' + i + '">×</button></div>';
+    }).join('');
+  }
+
+  function bindCollageDelete(sheet) {
+    sheet.querySelectorAll('.collage__del').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        entryImages.splice(Number(btn.getAttribute('data-img')), 1);
+        refreshEntryImagesUI(sheet);
+      });
+    });
+  }
+
+  function refreshEntryImagesUI(sheet) {
+    var label = sheet.querySelector('#entryImgLabel');
+    if (label) label.textContent = '图片（' + entryImages.length + '）';
+    var c = sheet.querySelector('#entryCollage');
+    if (entryImages.length && !c) {
+      c = document.createElement('div');
+      c.id = 'entryCollage'; c.className = 'collage';
+      sheet.querySelector('#entryImageInput').closest('.field').appendChild(c);
+    }
+    if (c) {
+      if (entryImages.length) { c.innerHTML = collageHtml(); c.style.display = ''; bindCollageDelete(sheet); }
+      else c.style.display = 'none';
+    }
+    var aiBtn = sheet.querySelector('#aiBtn');
+    var row = sheet.querySelector('#entryImageInput').closest('.field').querySelector('div[style*="flex"]');
+    if (entryImages.length && !aiBtn && row) {
+      aiBtn = document.createElement('button');
+      aiBtn.id = 'aiBtn'; aiBtn.className = 'btn btn--soft'; aiBtn.style.cssText = 'flex:1';
+      aiBtn.onclick = function () { App.recognizeImages(); };
+      aiBtn.textContent = '✦ AI 识物';
+      row.appendChild(aiBtn);
+    }
+    if (aiBtn) aiBtn.style.display = entryImages.length ? '' : 'none';
+  }
+
+  function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
+
+  function recognizeImages() {
+    if (!AI.configured()) { alert('尚未配置后端地址，AI 识物暂不可用。\n请到「设置 → 云同步」填写后端地址后重试。'); return; }
+    if (!entryImages.length) return;
+    var sheet = document.querySelector('.sheet');
+    var aiBtn = sheet && sheet.querySelector('#aiBtn');
+    var aiResult = sheet && sheet.querySelector('#aiResult');
+    if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = '识别中…'; }
+    var img = entryImages[entryImages.length - 1];
+    AI.recognize(img).then(function (res) {
+      var items = (res && res.items) || [];
+      var withBox = items.filter(function (it) { return it && typeof it.x === 'number' && typeof it.w === 'number'; });
+      var names = items.map(function (it) { return it && it.name; }).filter(Boolean);
+      var crops = withBox.map(function (it) {
+        return AI.crop(img, clamp01(it.x), clamp01(it.y), clamp01(it.w), clamp01(it.h)).catch(function () { return null; });
+      });
+      return Promise.all(crops).then(function (croppedList) {
+        croppedList.forEach(function (c) { if (c) entryImages.push(c); });
+        if (names.length) {
+          var noteInput = $('#entryNote');
+          var existing = noteInput.value.trim();
+          noteInput.value = existing ? existing + ' · ' + names.join('、') : names.join('、');
+        }
+        refreshEntryImagesUI(sheet);
+        if (aiResult) aiResult.textContent = items.length ? '识别到 ' + items.length + ' 件：' + names.join('、') + (withBox.length ? '，已自动裁剪 ' + withBox.length + ' 张' : '') : '未识别到物品';
+        if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '✦ AI 识物'; }
+      });
+    }).catch(function (err) {
+      if (aiResult) aiResult.textContent = '识别失败：' + err.message;
+      if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '✦ AI 识物'; }
+    });
+  }
+
+  function saveEntry(txId) {
+    var amount = Number($('#entryAmount').value);
+    if (!amount || amount <= 0) { alert('请输入金额'); return; }
+    var note = $('#entryNote').value.trim();
+    var date = $('#entryDate').value || L.todayStr();
+    var cats = L.getCategories(entryType);
+    var active = $('#entryCats .cat.active');
+    var category = active ? active.getAttribute('data-cat') : (cats[0] ? cats[0].id : '');
+    var patch = { type: entryType, amount: amount, category: category, date: date, note: note, images: entryImages };
+    if (txId) L.updateTransaction(txId, patch); else L.addTransaction(patch);
+    closeSheet(); render();
+  }
+
+  function deleteEntry(txId) {
+    if (!confirm('删除这笔记录？')) return;
+    L.deleteTransaction(txId); closeSheet(); render();
+  }
+
+  function openBudgetSheet() {
+    var b = L.getBudgets();
+    openSheet('<div class="sheet__title">设置总预算</div><div class="field"><div class="field__label">每月总预算（元）</div>' +
+      '<input class="field__input" id="budgetTotal" type="number" inputmode="decimal" min="0" step="100" placeholder="如 5000" value="' + (b.total || '') + '"></div>' +
+      '<div class="sheet__actions"><button class="btn btn--ghost" onclick="App.closeSheet()">取消</button><button class="btn btn--primary" onclick="App.saveBudget()">保存</button></div>');
+  }
+  function saveBudget() {
+    var v = Number($('#budgetTotal').value);
+    L.setBudget({ total: v > 0 ? v : null });
+    closeSheet(); render();
+  }
+  function openCatBudgetSheet() {
+    var cats = L.getCategories('expense');
+    openSheet('<div class="sheet__title">添加分类预算</div><div class="field"><div class="field__label">分类</div><select class="field__input" id="catBudgetId">' +
+      cats.map(function (c) { return '<option value="' + c.id + '">' + esc(c.icon) + ' ' + esc(c.name) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><div class="field__label">每月额度（元）</div><input class="field__input" id="catBudgetAmt" type="number" inputmode="decimal" min="0" placeholder="如 800"></div>' +
+      '<div class="sheet__actions"><button class="btn btn--ghost" onclick="App.closeSheet()">取消</button><button class="btn btn--primary" onclick="App.saveCatBudget()">保存</button></div>');
+  }
+  function saveCatBudget() {
+    var id = $('#catBudgetId').value;
+    var amt = Number($('#catBudgetAmt').value);
+    if (!amt || amt <= 0) { alert('请输入额度'); return; }
+    var b = L.getBudgets();
+    b.byCategory[id] = amt;
+    L.setBudget({ byCategory: b.byCategory });
+    closeSheet(); render();
+  }
+
+  function openRecurringSheet(id) {
+    var r = id ? L.getRecurrings().find(function (x) { return x.id === id; }) : null;
+    var cats = L.getCategories(r ? r.type : 'expense');
+    var html = '<div class="sheet__title">' + (r ? '编辑周期记账' : '新建周期记账') + '</div>' +
+      '<div class="field"><div class="field__label">名称</div><input class="field__input" id="recName" placeholder="如 房租、视频会员" value="' + (r ? esc(r.name) : '') + '"></div>' +
+      '<div class="field"><div class="field__label">金额</div><input class="field__input" id="recAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" value="' + (r ? r.amount : '') + '"></div>' +
+      '<div class="field"><div class="seg" id="recTypeSeg">' +
+      '<button class="seg__item' + (!r || r.type === 'expense' ? ' active' : '') + '" data-type="expense">支出</button>' +
+      '<button class="seg__item' + (r && r.type === 'income' ? ' active' : '') + '" data-type="income">收入</button></div></div>' +
+      '<div class="field"><div class="field__label">分类</div><select class="field__input" id="recCat">' +
+      cats.map(function (c) { return '<option value="' + c.id + '"' + (r && r.category === c.id ? ' selected' : '') + '>' + esc(c.icon) + ' ' + esc(c.name) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><div class="field__label">周期</div><select class="field__input" id="recCycle">' +
+      Object.keys(L.CYCLE_LABELS).map(function (k) { return '<option value="' + k + '"' + (r && r.cycle === k ? ' selected' : '') + '>' + L.CYCLE_LABELS[k] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="field"><div class="field__label">下次执行日期</div><input class="field__input" id="recDate" type="date" value="' + (r ? r.nextDate : L.todayStr()) + '"></div>' +
+      '<div class="sheet__actions"><button class="btn btn--ghost" onclick="App.closeSheet()">取消</button>' +
+      (r ? '<button class="btn btn--ghost" style="color:var(--expense)" onclick="App.deleteRecurring(\'' + r.id + '\')">删除</button>' : '') +
+      '<button class="btn btn--primary" onclick="App.saveRecurring(\'' + (r ? r.id : '') + '\')">保存</button></div>';
+    var sheet = openSheet(html);
+    sheet.querySelectorAll('#recTypeSeg [data-type]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sheet.querySelectorAll('#recTypeSeg [data-type]').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        var sel = sheet.querySelector('#recCat');
+        sel.innerHTML = L.getCategories(btn.getAttribute('data-type')).map(function (c) { return '<option value="' + c.id + '">' + esc(c.icon) + ' ' + esc(c.name) + '</option>'; }).join('');
+      });
+    });
+  }
+  function saveRecurring(id) {
+    var name = $('#recName').value.trim();
+    var amount = Number($('#recAmount').value);
+    if (!name || !amount || amount <= 0) { alert('请填写名称和金额'); return; }
+    var type = $('#recTypeSeg .seg__item.active').getAttribute('data-type');
+    var data = { name: name, amount: amount, type: type, category: $('#recCat').value, cycle: $('#recCycle').value, nextDate: $('#recDate').value || L.todayStr() };
+    if (id) L.updateRecurring(id, data); else L.addRecurring(data);
+    closeSheet(); render();
+  }
+  function deleteRecurring(id) {
+    if (!confirm('删除这条周期记账？')) return;
+    L.deleteRecurring(id); closeSheet(); render();
+  }
+
+  function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var max = 360;
+        var w = img.width, h = img.height;
+        if (w > max || h > max) {
+          var r = Math.min(max / w, max / h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function applyTheme() {
+    var theme = L.getSettings().theme;
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  function toggleTheme() {
+    var cur = L.getSettings().theme;
+    L.setSettings({ theme: cur === 'dark' ? 'light' : 'dark' });
+    applyTheme(); render();
+  }
+
+  function exportCSV() {
+    var txs = L.getTransactions();
+    var header = '日期,类型,分类,金额,备注';
+    var rows = txs.map(function (t) {
+      return [t.date, t.type === 'expense' ? '支出' : '收入', catName(t.type, t.category), t.amount, (t.note || '').replace(/,/g, '，')].join(',');
+    });
+    var csv = '﻿' + header + '\n' + rows.join('\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '记账导出_' + L.todayStr() + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function clearAll() {
+    if (!confirm('确定清空所有数据？此操作不可恢复。')) return;
+    localStorage.removeItem('ledger-app.v1');
+    location.reload();
+  }
+
+  function saveApiBase() {
+    var v = $('#apiBaseInput').value.trim();
+    L.setSettings({ apiBase: v });
+    render();
+    alert(v ? '后端地址已保存' : '已清空后端地址');
+  }
+  function copySyncKey() {
+    var inp = $('#syncKeyInput');
+    inp.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    if (navigator.clipboard) navigator.clipboard.writeText(inp.value).catch(function () {});
+    alert('已复制同步码');
+  }
+  function syncNow() {
+    if (!Sync.configured()) { alert('请先填写后端地址'); return; }
+    var msg = $('#syncMsg');
+    if (msg) msg.textContent = '同步中…';
+    Sync.syncNow().then(function () {
+      if (msg) msg.textContent = '同步成功 ' + new Date().toLocaleTimeString();
+      render();
+    }).catch(function (e) {
+      if (msg) msg.textContent = '同步失败：' + e.message;
+    });
+  }
+
+  function setListType(t) { state.listFilter.type = t; $('#view').innerHTML = renderList(); }
+  function setListMonth(m) { state.listFilter.month = m; $('#view').innerHTML = renderList(); }
+  function setListKeyword(k) { state.listFilter.keyword = k; $('#view').innerHTML = renderList(); }
+  function setStatsPeriod(p) { state.statsPeriod = p; $('#view').innerHTML = renderStats(); afterRender('stats'); }
+  function shiftStats(dir) {
+    var anchor = L.parseDate(state.statsAnchor);
+    if (state.statsPeriod === 'month') anchor.setMonth(anchor.getMonth() + dir);
+    else if (state.statsPeriod === 'week') anchor.setDate(anchor.getDate() + dir * 7);
+    else anchor.setDate(anchor.getDate() + dir);
+    state.statsAnchor = L.fmtDate(anchor);
+    $('#view').innerHTML = renderStats();
+    afterRender('stats');
+  }
+
+  function bindGlobal() {
+    document.addEventListener('click', function (e) {
+      var navBtn = e.target.closest('[data-route]');
+      if (navBtn) { go(navBtn.getAttribute('data-route')); return; }
+      if (e.target.closest('#fab')) { openEntry(); return; }
+      if (e.target.closest('#themeToggle')) { toggleTheme(); return; }
+      if (e.target === $('#modalRoot')) { closeSheet(); }
+    });
+  }
+
+  function init() {
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('errBanner');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'errBanner';
+        box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;background:#C98E7E;color:#fff;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5;z-index:99999;';
+        document.body.appendChild(box);
+      }
+      box.textContent = '加载出错：' + (e.message || '未知错误');
+    });
+    L.settleRecurrings(L.todayStr());
+    applyTheme();
+    bindGlobal();
+    renderNav();
+    render();
+  }
+
+  window.App = {
+    go: go, openEntry: openEntry, closeSheet: closeSheet, saveEntry: saveEntry, deleteEntry: deleteEntry,
+    openBudgetSheet: openBudgetSheet, saveBudget: saveBudget, openCatBudgetSheet: openCatBudgetSheet, saveCatBudget: saveCatBudget,
+    openRecurringSheet: openRecurringSheet, saveRecurring: saveRecurring, deleteRecurring: deleteRecurring,
+    toggleTheme: toggleTheme, exportCSV: exportCSV, clearAll: clearAll,
+    setListType: setListType, setListMonth: setListMonth, setListKeyword: setListKeyword,
+    setStatsPeriod: setStatsPeriod, shiftStats: shiftStats,
+    recognizeImages: recognizeImages, saveApiBase: saveApiBase, copySyncKey: copySyncKey, syncNow: syncNow
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

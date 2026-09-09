@@ -1,0 +1,12 @@
+name = "ledger-backend"
+main = "worker.js"
+compatibility_date = "2026-09-09"
+
+# 需要一个 KV 命名空间做云同步，绑定名固定为 LEDGER_KV
+# 用 wrangler 创建后，把 id 填到下面（或保持注释、部署时按提示处理）
+# [[kv_namespaces]]
+# binding = "LEDGER_KV"
+# id = "在这里填你的 KV id"
+
+# DeepSeek 的 key 用 secret 配置，绝不写在这里：
+#   wrangler secret put DEEPSEEK_API_KEY
